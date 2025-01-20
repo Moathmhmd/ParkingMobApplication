@@ -34,7 +34,6 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthPage(),
         '/user_info': (context) => const UserInfoPage(),
       },
-      //yanal
     );
   }
 }
