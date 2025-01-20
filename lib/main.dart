@@ -7,7 +7,6 @@ import 'auth/signup_page.dart';
 import 'main_page.dart';
 import 'onboarding_page.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -30,14 +29,11 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const OnboardingScreen(),
         '/signup': (context) => const SignupPage(),
-        '/main': (context) =>  const MainPage(),
-        '/login':(context) => const LoginPage(),
-        '/auth':(context) => const AuthPage(),
-        '/user_info':(context) => const UserInfoPage(),
-        
-        
+        '/main': (context) => const MainPage(),
+        '/login': (context) => const LoginPage(),
+        '/auth': (context) => const AuthPage(),
+        '/user_info': (context) => const UserInfoPage(),
       },
-      
     );
   }
 }
