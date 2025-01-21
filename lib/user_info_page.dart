@@ -66,6 +66,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
             .collection('users')
             .doc(currentUser.uid)
             .update({'name': newName});
+        await currentUser.updateDisplayName(newName);
         setState(() {
           userName = newName;
           isEditingName = false;
@@ -85,7 +86,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser != null) {
-        final formattedPhone = '+1$newPhone'; // Add country code
+        final formattedPhone = '+962$newPhone'; // Add country code
         await _firestore
             .collection('users')
             .doc(currentUser.uid)

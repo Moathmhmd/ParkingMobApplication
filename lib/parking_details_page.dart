@@ -49,7 +49,7 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
       body: SafeArea(
         child: Column( crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-                   Row(
+                   Row( 
                      children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
@@ -262,7 +262,7 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: slot['status'] == 'available'
                               ? Colors.green[200]
-                              : Colors.red[200],
+                              : slot['status'] == 'occupied'? Colors.red[200]: slot['status'] == 'reserved' ? const Color.fromARGB(255, 238, 227, 134): Colors.grey[200],
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

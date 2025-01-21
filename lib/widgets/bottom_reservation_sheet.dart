@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:parking_proj/Reservation_Page.dart';
 
 class BottomReservationSheet {
-  static void show(BuildContext context, Map<String, dynamic> slot, int floorNumber, String parkingSpotId, int slotIndex) {
+  static void show(
+    BuildContext context,
+    Map<String, dynamic> slot,
+    int floorNumber,
+    String parkingLotId,
+    int slotIndex,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Ensures it takes up the required space
@@ -13,9 +20,9 @@ class BottomReservationSheet {
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('parkingSpots')
-              .doc(parkingSpotId)
+              .doc(parkingLotId)
               .snapshots(),
-          builder: (context, snapshot) {
+          builder: (context,  snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -26,9 +33,15 @@ class BottomReservationSheet {
               return const Center(child: Text('No data available.'));
             }
 
-            // Extract updated slot data
+            // Extract updated slot and floor data
             final parkingData = snapshot.data!.data() as Map<String, dynamic>;
-            final updatedSlot = parkingData['floors'][floorNumber - 1]['slots'][slotIndex] as Map<String, dynamic>;
+            final floorData =
+                (parkingData['floors'] as List<dynamic>)[floorNumber - 1];
+            final updatedSlot =
+                (floorData['slots'] as List<dynamic>)[slotIndex];
+            final double floorPrice = (floorData['price'] is int)
+              ? (floorData['price'] as int).toDouble()
+                : floorData['price'] as double;
 
             return Padding(
               padding: const EdgeInsets.all(16.0),
@@ -61,7 +74,7 @@ class BottomReservationSheet {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Price: ${updatedSlot['price'] ?? 'N/A'} per hour",
+                    "Price: \$${floorPrice.toStringAsFixed(2)} per hour",
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.grey[700],
@@ -73,8 +86,19 @@ class BottomReservationSheet {
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          // Placeholder for reserve action
-                          Navigator.pop(context);
+                          // Navigate to the Reservation Page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ReservationPage(
+                                spotName: updatedSlot['name'], // Slot name (e.g., A1)
+                                floorNumber: floorNumber, // Floor number
+                                price: floorPrice, // Floor price
+                                parkingLotId: parkingLotId, // Parking lot ID
+                                spotId: '${parkingLotId}-${updatedSlot['name']}', // Unique spot identifier
+                              ),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.lightBlue,

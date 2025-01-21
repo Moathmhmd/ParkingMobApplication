@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:parking_proj/Reservation_Page.dart';
 import 'package:parking_proj/auth/auth_page.dart';
 import 'package:parking_proj/auth/login_page.dart';
+import 'package:parking_proj/services/reservation_utils.dart';
 import 'package:parking_proj/user_info_page.dart';
 import 'auth/signup_page.dart';
 import 'main_page.dart';
@@ -11,6 +11,7 @@ import 'onboarding_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await ReservationUtils.checkAndUpdateExpiredReservations();
   runApp(const MyApp());
 }
 
@@ -34,7 +35,6 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/auth': (context) => const AuthPage(),
         '/user_info': (context) => const UserInfoPage(),
-        '/reserv': (context) => const ReservationPage(),
       },
     );
   }
