@@ -217,9 +217,8 @@ class _UserInfoPageState extends State<UserInfoPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(controller.text.isEmpty ? "No data" : controller.text),
-              ElevatedButton(
+              IconButton( icon: Icon(Icons.settings),
                 onPressed: onEdit,
-                child: const Text('Edit'),
               ),
             ],
           ),
@@ -238,6 +237,22 @@ class _UserInfoPageState extends State<UserInfoPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  
+                  IconButton(
+                      onPressed: () => _signOut(),
+                      icon: const Icon(Icons.logout, color: Colors.redAccent),
+                      tooltip: 'Sign Out',
+                    ),
+                  ],
+                ), 
                 const Center(
                   child: CircleAvatar(
                     radius: 60,
@@ -348,22 +363,14 @@ class _UserInfoPageState extends State<UserInfoPage> {
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      ElevatedButton(
+                      IconButton(icon: Icon(Icons.settings),
                         onPressed: () =>
                             setState(() => isEditingPassword = true),
-                        child: const Text("Edit"),
+                        
                       ),
                     ],
                   ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _signOut,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-                    foregroundColor: Colors.red,
-                  ),
-                  child: const Text('Sign Out'),
-                ),
+                
               ],
             ),
           ),

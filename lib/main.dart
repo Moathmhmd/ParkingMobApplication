@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:parking_proj/Reservation_Page.dart';
 import 'package:parking_proj/auth/auth_page.dart';
 import 'package:parking_proj/auth/login_page.dart';
 import 'package:parking_proj/user_info_page.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/auth': (context) => const AuthPage(),
         '/user_info': (context) => const UserInfoPage(),
+        '/reserv': (context) => const ReservationPage(),
       },
     );
   }

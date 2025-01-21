@@ -49,15 +49,16 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
       body: SafeArea(
         child: Column( crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
+                   Row(
+                     children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                     ],
+                   ),
             // Parking Summary Section
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -256,7 +257,7 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
                       final slot = slots[index];
                       return ElevatedButton(
                         onPressed: () {
-                           BottomReservationSheet.show(context, slot, selectedFloor + 1);
+                           BottomReservationSheet.show(context, slot, currentFloor['floorNumber'], widget.id, index);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: slot['status'] == 'available'
