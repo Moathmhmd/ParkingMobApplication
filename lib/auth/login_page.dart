@@ -15,24 +15,26 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
-  Future<void> login() async {
+  Future<void> login({required bool isAdmin}) async {
     setState(() {
       isLoading = true;
     });
 
     try {
       // Firebase Authentication Login
-        await _auth.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-    
-      
-      // On success, navigate to the main page
+
+      // Navigate to respective pages
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Successful !')),
+        SnackBar(
+            content: Text(
+                isAdmin ? 'Admin Login Successful!' : 'Login Successful!')),
       );
-      Navigator.pushReplacementNamed(context, '/auth');
+      Navigator.pushReplacementNamed(
+          context, isAdmin ? '/adminDashboard' : '/auth');
     } catch (e) {
       // Handle login errors
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,14 +51,22 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 100),
+                  Text(
+                    'Login',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                  ),
+                  const SizedBox(height: 40),
                   TextField(
                     controller: emailController,
                     decoration: InputDecoration(
@@ -73,22 +83,42 @@ class _LoginPageState extends State<LoginPage> {
                     decoration: InputDecoration(
                       labelText: 'Password',
                       border: OutlineInputBorder(
-                        borderSide: BorderSide(width: 5.0 ),
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: login,
-                    child: const Text('Login'),
+                    onPressed: () => login(isAdmin: false),
+                    child: const Text('Login as User'),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () => login(isAdmin: true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.blueAccent, // Highlight admin button
+                    ),
+                    child: const Text('Login as Admin'),
                   ),
                   const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
-                    },
-                    child: const Text('Don\'t have an account? Sign Up'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/signup');
+                        },
+                        child: const Text('Sign Up as User'),
+                      ),
+                      const SizedBox(width: 10),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/adminSignup');
+                        },
+                        child: const Text('Sign Up as Admin'),
+                      ),
+                    ],
                   ),
                 ],
               ),

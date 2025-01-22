@@ -3,14 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
-class SignupPage extends StatefulWidget {
-  const SignupPage({Key? key}) : super(key: key);
+class AdminSignupPage extends StatefulWidget {
+  const AdminSignupPage({Key? key}) : super(key: key);
 
   @override
-  _SignupPageState createState() => _SignupPageState();
+  _AdminSignupPageState createState() => _AdminSignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
+class _AdminSignupPageState extends State<AdminSignupPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
@@ -29,7 +29,6 @@ class _SignupPageState extends State<SignupPage> {
 
   // Phone number validation
   bool isPhoneNumberValid(String phoneNumber) {
-    // Add custom validation based on country code or phone number length if needed
     return phoneNumber.isNotEmpty;
   }
 
@@ -80,27 +79,28 @@ class _SignupPageState extends State<SignupPage> {
         return;
       }
 
-      // Create a new user with Firebase Authentication
-      final userCredential = await _auth.createUserWithEmailAndPassword(
+      // Create a new admin with Firebase Authentication
+      final adminCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      await userCredential.user!.updateDisplayName(name);
+      await adminCredential.user!.updateDisplayName(name);
 
-      // Store additional user data in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      // Store additional admin data in Firestore
+      await _firestore.collection('admins').doc(adminCredential.user!.uid).set({
         'name': name,
         'email': email,
         'phoneNumber': _phoneNumber,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Automatically sign in the user
-      Navigator.pushReplacementNamed(context, '/auth');
+      // Navigate to the Admin Page
+      Navigator.pushReplacementNamed(
+          context, '/adminDashboard'); // Navigate to the Admin page
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign-Up Failed')),
+        SnackBar(content: Text('Sign-Up Failed: ${e.toString()}')),
       );
     } finally {
       setState(() {
@@ -122,7 +122,7 @@ class _SignupPageState extends State<SignupPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'User Sign Up ',
+                      'Admin Sign Up ',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
