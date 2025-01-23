@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:parking_proj/admin_add_parking_page.dart';
 import 'package:parking_proj/admin_page.dart';
 import 'package:parking_proj/auth/adminsignup.dart';
 import 'package:parking_proj/auth/auth_page.dart';
@@ -39,9 +40,9 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthPage(),
         '/user_info': (context) => const UserInfoPage(),
         '/booking': (context) => const UserReservationsPage(),
-        '/adminDashboard': (context) => const adminpage(),
+        '/adminDashboard': (context) => const AdminPage(),
         '/adminSignup': (context) => const AdminSignupPage(),
-        
+        '/AdminAddParking': (context) => const AdminAddParking(),
       },
     );
   }
