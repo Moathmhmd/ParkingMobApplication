@@ -19,7 +19,8 @@ class _MainPageState extends State<MainPage> {
 
   void signUserOut(BuildContext context) {
     FirebaseAuth.instance.signOut();
-    Navigator.pushReplacementNamed(context, '/auth'); // Redirect to on boarding after sign-out
+    Navigator.pushReplacementNamed(
+        context, '/auth'); // Redirect to on boarding after sign-out
   }
 
   @override
