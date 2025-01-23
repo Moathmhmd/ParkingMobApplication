@@ -20,7 +20,7 @@ class _MainPageState extends State<MainPage> {
   void signUserOut(BuildContext context) {
     FirebaseAuth.instance.signOut();
     Navigator.pushReplacementNamed(
-        context, '/auth'); // Redirect to on boarding after sign-out
+        context, '/auth'); // Redirect to onboarding after sign-out
   }
 
   @override
@@ -65,7 +65,7 @@ class _MainPageState extends State<MainPage> {
                 ],
               ),
               const SizedBox(height: 24),
-    
+
               // Search Bar
               TextField(
                 decoration: InputDecoration(
@@ -83,7 +83,7 @@ class _MainPageState extends State<MainPage> {
                 },
               ),
               const SizedBox(height: 24),
-              
+
               // Welcome Section
               const Text(
                 'Parking Nearby',
@@ -94,7 +94,7 @@ class _MainPageState extends State<MainPage> {
                 ),
               ),
               const SizedBox(height: 16),
-    
+
               // Parking Spots List
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
@@ -103,49 +103,69 @@ class _MainPageState extends State<MainPage> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-    
+
                     if (snapshot.hasError) {
                       return const Center(child: Text('Error fetching data.'));
                     }
-    
+
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Center(child: Text('No parking spots available.'));
                     }
-    
+
                     final allParkingSpots = snapshot.data!.docs;
                     final filteredParkingSpots = allParkingSpots.where((doc) {
                       final name = (doc['name'] ?? '').toString().toLowerCase();
                       return name.contains(searchQuery);
                     }).toList();
-    
+
                     if (filteredParkingSpots.isEmpty) {
                       return const Center(child: Text('No matching parking spots found.'));
                     }
-    
+
                     return ListView.builder(
                       itemCount: filteredParkingSpots.length,
                       itemBuilder: (context, index) {
                         final spot = filteredParkingSpots[index];
+
+                        // Extract price range from the floors
+                        final floors = spot['floors'] as List<dynamic>? ?? [];
+                        double minPrice = double.infinity;
+                        double maxPrice = -double.infinity;
+
+                        for (final floor in floors) {
+                          final price = floor['price'] as num?;
+                          if (price != null) {
+                            minPrice = price < minPrice ? price.toDouble() : minPrice;
+                            maxPrice = price > maxPrice ? price.toDouble() : maxPrice;
+                          }
+                        }
+
+                        final priceRange = minPrice == double.infinity || maxPrice == -double.infinity
+                            ? 'N/A'
+                            : minPrice == maxPrice
+                                ? '\$$minPrice/hour'
+                                : '\$$minPrice - \$$maxPrice/hour';
+
                         return ParkingCard(
                           imageUrl: 'assets/onboarding1.png', // Placeholder image
                           name: spot['name'] ?? 'Unnamed Spot',
                           location: spot['area'] ?? 'Unknown Area', // Display area from Firestore
-                          price: '${spot['hourlyRate'] ?? 'N/A'}/hour',
+                          price: priceRange,
                           onTap: () async {
                             // Fetch full parking spot details dynamically
                             final parkingDetails = await FirebaseFirestore.instance
                                 .collection('parkingSpots')
                                 .doc(spot.id) // Use the document ID
                                 .get();
-    
+
                             if (parkingDetails.exists) {
                               final data = parkingDetails.data()!;
-    
+
                               // Safely cast 'floors' to List<Map<String, dynamic>>
                               final List<Map<String, dynamic>> floors = (data['floors'] as List)
                                   .map((floor) => floor as Map<String, dynamic>)
                                   .toList();
-    
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -156,8 +176,8 @@ class _MainPageState extends State<MainPage> {
                                     longitude: data['longitude'] ?? 0.0,
                                     capacity: data['capacity'] ?? 0,
                                     availableSpots: data['availableSpots'] ?? 0,
-                                    id:spot.id ,
-                                    timestamp: data['timestamp'] ?? 0 ,
+                                    id: spot.id,
+                                    timestamp: data['timestamp'] ?? '',
                                   ),
                                 ),
                               );

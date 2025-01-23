@@ -65,35 +65,39 @@ class _ReservationPageState extends State<ReservationPage> {
       // Calculate the total price for the reservation
       final totalPrice = widget.price * durationInHours;
 
-      // Update slot's reservation details
-      slot['isReserved'] = true;
-      slot['status'] = "reserved"; // Explicitly mark as reserved
-      slot['reservedBy'] = FirebaseAuth.instance.currentUser?.uid ?? "";
-      slot['reservationStartTime'] = currentTime.toIso8601String();
-      slot['reservationEndTime'] = endTime.toIso8601String();
-
-      await spotDoc.update({'floors': spot['floors']});
-
-      // Add reservation to the reservations collection
+      // Create the reservation in the `reservations` collection
       final reservationDoc = FirebaseFirestore.instance.collection('reservations').doc();
-      await reservationDoc.set({
+      final reservationData = {
         'reservationId': reservationDoc.id,
         'userId': FirebaseAuth.instance.currentUser?.uid ?? "",
-        'spotId': widget.spotId,
         'parkingLotId': widget.parkingLotId,
         'floorNumber': widget.floorNumber,
         'spotName': widget.spotName,
         'startTime': currentTime.toIso8601String(),
         'endTime': endTime.toIso8601String(),
         'status': "active",
-        'price': totalPrice, // Save calculated price
-      });
+        'price': totalPrice,
+      };
+      await reservationDoc.set(reservationData);
 
-      // Add reference to the user's reservations
+      // Add the reservation reference to the user's document
       final userDoc = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
       await userDoc.update({
         'reservationRefs': FieldValue.arrayUnion([reservationDoc.path]),
       });
+
+      // Add the reservation reference to the parking spot document
+      await spotDoc.update({
+        'reservationsRefs': FieldValue.arrayUnion([reservationDoc.path]),
+      });
+
+      // Update the slot's reservation details in the parking spot
+      slot['isReserved'] = true;
+      slot['status'] = "reserved"; // Explicitly mark as reserved
+      slot['reservedBy'] = FirebaseAuth.instance.currentUser?.uid ?? "";
+      slot['reservationStartTime'] = currentTime.toIso8601String();
+      slot['reservationEndTime'] = endTime.toIso8601String();
+      await spotDoc.update({'floors': spot['floors']});
 
       _showSuccess("Reservation confirmed for ${widget.spotName}.\nTotal Price: \$${totalPrice.toStringAsFixed(2)}");
     } catch (e) {

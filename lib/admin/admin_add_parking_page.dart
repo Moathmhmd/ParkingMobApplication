@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminAddParking extends StatefulWidget {
   const AdminAddParking({super.key});
@@ -9,7 +10,6 @@ class AdminAddParking extends StatefulWidget {
 }
 
 class _AdminAddParkingState extends State<AdminAddParking> {
-  // Reference to Firestore collection
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CollectionReference _parkingCollection =
       FirebaseFirestore.instance.collection('parkingSpots');
@@ -21,8 +21,8 @@ class _AdminAddParkingState extends State<AdminAddParking> {
 
   final TextEditingController _floorNumberController = TextEditingController();
   final TextEditingController _floorSlotsController = TextEditingController();
-  final TextEditingController _floorHourlyRateController =
-      TextEditingController(); // Hourly rate per floor
+  final TextEditingController _floorPriceController =
+      TextEditingController(); // Price per floor
 
   final List<Map<String, dynamic>> _floors = [];
 
@@ -45,6 +45,9 @@ class _AdminAddParkingState extends State<AdminAddParking> {
         0, (sum, floor) => sum + (floor['slots'] as List).length);
     final int availableSpots = capacity;
 
+    // Get the current user's ID
+    final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? "";
+
     final Map<String, dynamic> parkingLot = {
       'name': name,
       'area': area,
@@ -53,6 +56,8 @@ class _AdminAddParkingState extends State<AdminAddParking> {
       'capacity': capacity,
       'availableSpots': availableSpots,
       'floors': _floors,
+      'ownerId': ownerId, // Assign ownership
+      'timestamp': '', 
     };
 
     try {
@@ -78,7 +83,7 @@ class _AdminAddParkingState extends State<AdminAddParking> {
     _longitudeController.clear();
     _floorNumberController.clear();
     _floorSlotsController.clear();
-    _floorHourlyRateController.clear(); // Reset hourly rate controller
+    _floorPriceController.clear(); // Reset price controller
     _floors.clear();
     setState(() {});
   }
@@ -88,8 +93,8 @@ class _AdminAddParkingState extends State<AdminAddParking> {
     final int floorNumber =
         int.tryParse(_floorNumberController.text.trim()) ?? 0;
     final int slotsCount = int.tryParse(_floorSlotsController.text.trim()) ?? 0;
-    final double hourlyRate =
-        double.tryParse(_floorHourlyRateController.text.trim()) ?? 0.0;
+    final double price =
+        double.tryParse(_floorPriceController.text.trim()) ?? 0.0;
 
     if (floorNumber > 0 && slotsCount > 0) {
       final List<Map<String, dynamic>> slots = List.generate(
@@ -107,7 +112,7 @@ class _AdminAddParkingState extends State<AdminAddParking> {
       setState(() {
         _floors.add({
           'floorNumber': floorNumber,
-          'price': hourlyRate, // Hourly rate for the floor
+          'price': price, // Use "price" instead of "hourlyRate"
           'slots': slots,
         });
       });
@@ -115,7 +120,7 @@ class _AdminAddParkingState extends State<AdminAddParking> {
       // Clear the floor-specific inputs
       _floorNumberController.clear();
       _floorSlotsController.clear();
-      _floorHourlyRateController.clear(); // Reset hourly rate field
+      _floorPriceController.clear(); // Reset price field
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Invalid floor details.")),
@@ -160,8 +165,8 @@ class _AdminAddParkingState extends State<AdminAddParking> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
-              Center(
-                child: const Text("Add Floor Details",
+              const Center(
+                child: Text("Add Floor Details",
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -178,9 +183,9 @@ class _AdminAddParkingState extends State<AdminAddParking> {
                 keyboardType: TextInputType.number,
               ),
               TextField(
-                controller: _floorHourlyRateController,
+                controller: _floorPriceController,
                 decoration:
-                    const InputDecoration(labelText: "Hourly Rate per Floor"),
+                    const InputDecoration(labelText: "Price per Floor"),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 8),

@@ -1,12 +1,20 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'admin_add_parking_page.dart'; // Ensure correct import path
 import 'admin_edit_parking_page.dart'; // Ensure correct import path for the edit page
+import 'admin_reservations_page.dart'; // Ensure correct import path for the reservations page
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
 
   @override
   State<AdminPage> createState() => _AdminPageState();
+}
+
+void signUserOut(BuildContext context) {
+  FirebaseAuth.instance.signOut();
+  Navigator.pushReplacementNamed(
+      context, '/auth'); // Redirect to on boarding after sign-out
 }
 
 class _AdminPageState extends State<AdminPage> {
@@ -17,6 +25,13 @@ class _AdminPageState extends State<AdminPage> {
         title: const Text("Admin Page",
             style: TextStyle(color: Color.fromARGB(255, 55, 128, 255))),
         backgroundColor: const Color.fromARGB(0, 33, 149, 243),
+        actions: [
+          IconButton(
+            onPressed: () => signUserOut(context),
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            tooltip: 'Sign Out',
+          ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -62,6 +77,27 @@ class _AdminPageState extends State<AdminPage> {
                 textStyle: const TextStyle(fontSize: 20),
               ),
               child: const Text("Edit Parking Lot"),
+            ),
+            const SizedBox(height: 30), // Space between buttons
+            // Button to View Reservations
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to AdminReservationsPage
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminReservationsPage(), // Add navigation
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 20,
+                ),
+                textStyle: const TextStyle(fontSize: 20),
+              ),
+              child: const Text("View Reservations"),
             ),
           ],
         ),

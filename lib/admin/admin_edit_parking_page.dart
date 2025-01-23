@@ -3,119 +3,177 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminEditParking extends StatefulWidget {
-  const AdminEditParking({super.key});
+  const AdminEditParking({Key? key}) : super(key: key);
 
   @override
   State<AdminEditParking> createState() => _AdminEditParkingState();
 }
 
 class _AdminEditParkingState extends State<AdminEditParking> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final String adminId = FirebaseAuth.instance.currentUser!.uid;
 
-  late User _currentUser;
-  List<dynamic> _parkingLots = [];
-  List<Map<String, dynamic>> _floors = [];
-  Map<String, dynamic>? _selectedSpot;
-
-  final TextEditingController _spotStatusController = TextEditingController();
-  final TextEditingController _spotPriceController = TextEditingController();
+  String? selectedParkingId;
+  String? selectedFloorId;
   final TextEditingController _floorPriceController = TextEditingController();
+  final TextEditingController _numSlotsController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _fetchCurrentUser();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Edit Parking Lots",
+          style: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Dropdown for Parking Lots
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('parkingSpots')
+                  .where('ownerId', isEqualTo: adminId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No parking lots available."));
+                }
+
+                final parkingLots = snapshot.data!.docs;
+
+                return DropdownButtonFormField<String>(
+                  value: selectedParkingId,
+                  hint: const Text("Choose a parking lot"),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  items: parkingLots.map((parkingDoc) {
+                    return DropdownMenuItem<String>(
+                      value: parkingDoc.id,
+                      child: Text(parkingDoc['name'] ?? 'Unnamed Spot'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedParkingId = value;
+                      selectedFloorId = null; // Reset selected floor
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Dropdown for Floors
+            selectedParkingId == null
+                ? const Center(
+                    child: Text(
+                      "Please select a parking lot to view floors.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('parkingSpots')
+                        .doc(selectedParkingId)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        return const Center(child: Text("No floors found."));
+                      }
+
+                      final data = snapshot.data!.data() as Map<String, dynamic>;
+                      final floors = List<Map<String, dynamic>>.from(data['floors'] ?? []);
+
+                      return DropdownButtonFormField<String>(
+                        value: selectedFloorId,
+                        hint: const Text("Choose a floor"),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        items: floors.map((floor) {
+                          return DropdownMenuItem<String>(
+                            value: floor['floorNumber'].toString(),
+                            child: Text("Floor ${floor['floorNumber']}"),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedFloorId = value;
+                            final selectedFloor = floors.firstWhere(
+                                (floor) => floor['floorNumber'].toString() == value);
+                            _floorPriceController.text = selectedFloor['price'].toString();
+                            _numSlotsController.text =
+                                (selectedFloor['slots'] as List).length.toString();
+                          });
+                        },
+                      );
+                    },
+                  ),
+            const SizedBox(height: 20),
+
+            // Floor Details and Update Section
+            if (selectedFloorId != null) ...[
+              TextField(
+                controller: _floorPriceController,
+                decoration: const InputDecoration(
+                  labelText: "Floor Price",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _numSlotsController,
+                decoration: const InputDecoration(
+                  labelText: "Number of Slots",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _updateFloorDetails,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlue,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text("Update Floor Details"),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
-  void _fetchCurrentUser() {
-    final User? user = _auth.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not authenticated")),
-      );
-      return;
-    }
-    _currentUser = user;
-    _fetchParkingLots();
-  }
-
-  void _fetchParkingLots() async {
-    try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('parkingSpots')
-          .where('owner.id', isEqualTo: _currentUser.uid)
-          .get();
-
-      setState(() {
-        _parkingLots = querySnapshot.docs.map((doc) => doc.data()).toList();
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching parking lots: $e")),
-      );
-    }
-  }
-
-  void _fetchFloors(String parkingLotId) async {
-    try {
-      DocumentSnapshot doc =
-          await _firestore.collection('parkingSpots').doc(parkingLotId).get();
-      if (doc.exists) {
-        setState(() {
-          _selectedSpot = null;
-          _floors = List<Map<String, dynamic>>.from(doc['floors']);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching floors: $e")),
-      );
-    }
-  }
-
-  void _updateFloorPrice(String parkingLotId, int floorNumber) async {
-    if (_floorPriceController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill the floor price")),
-      );
-      return;
-    }
-
-    try {
-      final updatedFloorPrice =
-          double.tryParse(_floorPriceController.text.trim()) ?? 0.0;
-      final parkingLotDoc =
-          await _firestore.collection('parkingSpots').doc(parkingLotId).get();
-
-      if (parkingLotDoc.exists) {
-        final parkingLotData = parkingLotDoc.data()!;
-        final List floors = List.from(parkingLotData['floors']);
-        final floorIndex =
-            floors.indexWhere((floor) => floor['floorNumber'] == floorNumber);
-
-        if (floorIndex != -1) {
-          floors[floorIndex]['price'] = updatedFloorPrice;
-          await _firestore.collection('parkingSpots').doc(parkingLotId).update({
-            'floors': floors,
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Floor price updated successfully!")),
-          );
-          setState(() {});
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating floor price: $e")),
-      );
-    }
-  }
-
-  void _updateSpotDetails() async {
-    if (_spotStatusController.text.isEmpty ||
-        _spotPriceController.text.isEmpty) {
+  void _updateFloorDetails() async {
+    if (_floorPriceController.text.isEmpty || _numSlotsController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill all fields")),
       );
@@ -123,127 +181,51 @@ class _AdminEditParkingState extends State<AdminEditParking> {
     }
 
     try {
-      final updatedSpot = {
-        'status': _spotStatusController.text.trim(),
-        'price': double.tryParse(_spotPriceController.text.trim()) ?? 0.0,
-        'owner': _selectedSpot!['owner'],
-      };
+      final updatedPrice = double.tryParse(_floorPriceController.text.trim()) ?? 0.0;
+      final updatedNumSlots = int.tryParse(_numSlotsController.text.trim()) ?? 0;
 
-      final parkingLotDoc = await _firestore
-          .collection('parkingSpots')
-          .doc(_selectedSpot!['parkingLotId'])
-          .get();
+      final parkingLotDoc =
+          await FirebaseFirestore.instance.collection('parkingSpots').doc(selectedParkingId).get();
+
       if (parkingLotDoc.exists) {
         final parkingLotData = parkingLotDoc.data()!;
         final List floors = List.from(parkingLotData['floors']);
-        final floorIndex = floors.indexWhere(
-            (floor) => floor['floorNumber'] == _selectedSpot!['floorNumber']);
-        final spotIndex = floors[floorIndex]['slots']
-            .indexWhere((spot) => spot['name'] == _selectedSpot!['name']);
+        final floorIndex = floors
+            .indexWhere((floor) => floor['floorNumber'].toString() == selectedFloorId);
 
-        if (floorIndex != -1 && spotIndex != -1) {
-          floors[floorIndex]['slots'][spotIndex] = updatedSpot;
-          await _firestore
-              .collection('parkingSpots')
-              .doc(_selectedSpot!['parkingLotId'])
-              .update({
-            'floors': floors,
+        if (floorIndex != -1) {
+          final List slots = List.generate(updatedNumSlots, (index) {
+            return index < (floors[floorIndex]['slots'] as List).length
+                ? floors[floorIndex]['slots'][index]
+                : {
+                    'name': '${String.fromCharCode(65 + floorIndex)}${index + 1}',
+                    'status': 'available',
+                    'isReserved': false,
+                    'reservationStartTime': '',
+                    'reservationEndTime': '',
+                    'reservedBy': ''
+                  };
           });
 
+          floors[floorIndex]['price'] = updatedPrice;
+          floors[floorIndex]['slots'] = slots;
+
+          await FirebaseFirestore.instance
+              .collection('parkingSpots')
+              .doc(selectedParkingId)
+              .update({'floors': floors});
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Parking spot updated successfully!")),
+            const SnackBar(content: Text("Floor details updated successfully!")),
           );
-          setState(() {});
+
+          setState(() {}); // Refresh UI
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating spot: $e")),
+        SnackBar(content: Text("Error updating floor details: $e")),
       );
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Admin - Edit Parking Lot"),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _parkingLots.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Select a Parking Lot",
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _parkingLots.length,
-                      itemBuilder: (context, index) {
-                        final parkingLot = _parkingLots[index];
-                        return ListTile(
-                          title: Text(parkingLot['name']),
-                          subtitle: Text(parkingLot['area']),
-                          onTap: () => _fetchFloors(parkingLot['id']),
-                        );
-                      },
-                    ),
-                  ),
-                  if (_floors.isNotEmpty) ...[
-                    const Text("Select a Floor and Edit Price",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _floors.length,
-                        itemBuilder: (context, index) {
-                          final floor = _floors[index];
-                          return ListTile(
-                            title: Text("Floor ${floor['floorNumber']}"),
-                            subtitle:
-                                Text("Current Price: \$${floor['price']}"),
-                            onTap: () {
-                              _floorPriceController.text =
-                                  floor['price'].toString();
-                              _updateFloorPrice(_parkingLots[index]['id'],
-                                  floor['floorNumber']);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                  if (_selectedSpot != null) ...[
-                    const SizedBox(height: 16),
-                    const Text("Edit Spot Details",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    TextField(
-                      controller: _spotStatusController,
-                      decoration:
-                          const InputDecoration(labelText: "Spot Status"),
-                    ),
-                    TextField(
-                      controller: _spotPriceController,
-                      decoration:
-                          const InputDecoration(labelText: "Spot Price"),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _updateSpotDetails,
-                        child: const Text("Update Spot"),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-      ),
-    );
   }
 }
