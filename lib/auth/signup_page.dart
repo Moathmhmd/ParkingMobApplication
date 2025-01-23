@@ -90,10 +90,12 @@ class _SignupPageState extends State<SignupPage> {
 
       // Store additional user data in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
         'name': name,
         'email': email,
         'phoneNumber': _phoneNumber,
         'createdAt': FieldValue.serverTimestamp(),
+        'role': 'user',
       });
 
       // Automatically sign in the user

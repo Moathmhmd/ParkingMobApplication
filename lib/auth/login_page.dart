@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -15,30 +16,45 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
-  Future<void> login({required bool isAdmin}) async {
+  Future<void> login() async {
     setState(() {
       isLoading = true;
     });
 
     try {
       // Firebase Authentication Login
-      await _auth.signInWithEmailAndPassword(
+      final user = await _auth.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // Navigate to respective pages
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                isAdmin ? 'Admin Login Successful!' : 'Login Successful!')),
+        const SnackBar(
+          content: Text('Login Successful!'),
+          backgroundColor: Colors.green,
+        ),
       );
-      Navigator.pushReplacementNamed(
-          context, isAdmin ? '/adminDashboard' : '/auth');
+
+      // Navigate based on role
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.user!.uid)
+          .get();
+
+      if (userDoc.exists && userDoc.data()?['role'] == 'admin') {
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/adminDashboard', (route) => false);
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/main', (route) => false);
+      }
     } catch (e) {
       // Handle login errors
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Email or Password is Incorrect')),
+        const SnackBar(
+          content: Text('Email or Password is Incorrect'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() {
@@ -89,17 +105,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => login(isAdmin: false),
-                    child: const Text('Login as User'),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () => login(isAdmin: true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.blueAccent, // Highlight admin button
-                    ),
-                    child: const Text('Login as Admin'),
+                    onPressed: login,
+                    child: const Text('Login'),
                   ),
                   const SizedBox(height: 20),
                   Row(

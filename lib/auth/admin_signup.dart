@@ -89,11 +89,14 @@ class _AdminSignupPageState extends State<AdminSignupPage> {
 
       // Store additional admin data in Firestore
       await _firestore.collection('admins').doc(adminCredential.user!.uid).set({
+        'uid': adminCredential.user!.uid,
         'name': name,
         'email': email,
         'phoneNumber': _phoneNumber,
         'createdAt': FieldValue.serverTimestamp(),
+        'role': 'admin',
       });
+
 
       // Navigate to the Admin Page
       Navigator.pushReplacementNamed(
