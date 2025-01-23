@@ -157,7 +157,7 @@ class _MainPageState extends State<MainPage> {
                                       longitude: data['longitude'] ?? 0.0,
                                       capacity: data['capacity'] ?? 0,
                                       availableSpots: data['availableSpots'] ?? 0,
-                                      id:data['id'] ?? 0,
+                                      id:spot.id ?? 'Unknown ID',
                                       timestamp: data['timestamp'] ?? 0 ,
                                     ),
                                   ),

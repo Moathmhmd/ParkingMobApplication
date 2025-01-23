@@ -6,6 +6,7 @@ import 'package:parking_proj/auth/auth_page.dart';
 import 'package:parking_proj/auth/login_page.dart';
 import 'package:parking_proj/services/reservation_utils.dart';
 import 'package:parking_proj/user_info_page.dart';
+import 'package:parking_proj/users_reservation_details';
 import 'auth/signup_page.dart';
 import 'main_page.dart';
 import 'onboarding_page.dart';
@@ -37,8 +38,10 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/auth': (context) => const AuthPage(),
         '/user_info': (context) => const UserInfoPage(),
+        '/booking': (context) => const UserReservationsPage(),
         '/adminDashboard': (context) => const adminpage(),
         '/adminSignup': (context) => const AdminSignupPage(),
+        
       },
     );
   }

@@ -13,7 +13,7 @@ void _navigateToPage(int index, BuildContext context) {
         Navigator.pushNamed(context, '/maps');
         break;
       case 2:
-        Navigator.pushNamed(context, '/reservations');
+        Navigator.pushNamed(context, '/booking');
         break;
       case 3:
         Navigator.pushNamed(context, '/user_info');

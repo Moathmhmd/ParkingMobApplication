@@ -1,0 +1,269 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
+class UserReservationsPage extends StatefulWidget {
+  const UserReservationsPage({Key? key}) : super(key: key);
+
+  @override
+  State<UserReservationsPage> createState() => _UserReservationsPageState();
+}
+
+class _UserReservationsPageState extends State<UserReservationsPage> {
+  final String? userId = FirebaseAuth.instance.currentUser?.uid;
+  List<DocumentSnapshot> reservations = [];
+  bool isLoading = true;
+  final List<StreamSubscription> _subscriptions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserReservations();
+  }
+
+  Future<void> fetchUserReservations() async {
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+      return;
+    }
+
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final List<dynamic> reservationRefs = userData['reservationRefs'] ?? [];
+
+        final reservationIds = reservationRefs.map((ref) {
+          final refParts = ref.toString().split('/');
+          return refParts.last; // Extract document ID
+        }).toList();
+
+        for (final id in reservationIds) {
+          final subscription = FirebaseFirestore.instance
+              .collection('reservations')
+              .doc(id)
+              .snapshots()
+              .listen((doc) {
+            if (doc.exists && mounted) {
+              setState(() {
+                final index = reservations.indexWhere((r) => r.id == doc.id);
+                if (index >= 0) {
+                  reservations[index] = doc;
+                } else {
+                  reservations.add(doc);
+                }
+              });
+            }
+          });
+
+          _subscriptions.add(subscription);
+        }
+
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching reservations: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    // Cancel all subscriptions
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Return Button
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : reservations.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No reservations found.',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          itemCount: reservations.length,
+                          itemBuilder: (context, index) {
+                            final reservation = reservations[index].data() as Map<String, dynamic>;
+                            return ReservationCard(reservation: reservation);
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ReservationCard extends StatelessWidget {
+  final Map<String, dynamic> reservation;
+
+  const ReservationCard({Key? key, required this.reservation}) : super(key: key);
+
+  String formatDateTime(String isoString) {
+    final dateTime = DateTime.parse(isoString);
+    return DateFormat('MMM d, yyyy, h:mm a').format(dateTime);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final startTime = formatDateTime(reservation['startTime']);
+    final endTime = formatDateTime(reservation['endTime']);
+    final status = reservation['status'];
+    final price = reservation['price'] ?? 0.0; // Fetch price
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      elevation: 5,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Parking Lot: ${reservation['parkingLotId']}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.local_parking, color: Colors.lightBlue),
+                const SizedBox(width: 8),
+                Text(
+                  'Slot: ${reservation['spotName']}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.layers, color: Colors.lightBlue),
+                const SizedBox(width: 8),
+                Text(
+                  'Floor: ${reservation['floorNumber']}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: Colors.lightBlue),
+                const SizedBox(width: 8),
+                Text(
+                  'Start: $startTime',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.access_time_filled, color: Colors.lightBlue),
+                const SizedBox(width: 8),
+                Text(
+                  'End: $endTime',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.attach_money, color: Colors.lightBlue),
+                const SizedBox(width: 8),
+                Text(
+                  'Price: \$${price.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text(
+                  'Status: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Badge(status: status),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class Badge extends StatelessWidget {
+  final String status;
+
+  const Badge({Key? key, required this.status}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    Color badgeColor;
+    if (status == 'active') {
+      badgeColor = Colors.green;
+    } else if (status == 'completed') {
+      badgeColor = Colors.grey;
+    } else {
+      badgeColor = Colors.red;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
