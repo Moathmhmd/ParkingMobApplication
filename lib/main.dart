@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:parking_proj/admin_add_parking_page.dart';
-import 'package:parking_proj/admin_page.dart';
-import 'package:parking_proj/auth/adminsignup.dart';
+import 'package:parking_proj/admin/admin_add_parking_page.dart';
+import 'package:parking_proj/admin/admin_page.dart';
+import 'package:parking_proj/auth/admin_signup.dart';
 import 'package:parking_proj/auth/auth_page.dart';
 import 'package:parking_proj/auth/login_page.dart';
 import 'package:parking_proj/services/reservation_utils.dart';
