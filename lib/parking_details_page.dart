@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:parking_proj/widgets/bottom_nav_bar.dart';
 import 'package:parking_proj/widgets/bottom_reservation_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -207,7 +208,16 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text('Floor ${floor['floorNumber']}'), // Use the correct floor number
+                      child: Text('Floor ${floor['floorNumber']}',
+                        style: TextStyle(
+                          color: selectedFloor == index
+                            ? Colors.white
+                            : Colors.black,
+                          fontWeight: selectedFloor == index
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        ),
+                      ), // Use the correct floor number
                     ),
                   );
                 }),
@@ -297,6 +307,8 @@ class _ParkingDetailsPageState extends State<ParkingDetailsPage> {
           ],
         ),
       ),
+            bottomNavigationBar: const BottomNavBar(),
+
     );
   }
 }

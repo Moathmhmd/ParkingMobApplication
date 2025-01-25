@@ -85,10 +85,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.lightBlue,
                   ),
                   child: const Text('Get Started!',
                       style: TextStyle(fontSize: 18,
-                      color: Colors.blue)),
+                      color: Colors.white)),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -102,7 +103,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Text('I Already Have an Account !',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.blue,
+                    color: Colors.lightBlueAccent[600],
                   ),),
                 ),
               ],

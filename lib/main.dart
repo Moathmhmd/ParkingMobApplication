@@ -6,7 +6,6 @@ import 'package:parking_proj/admin/admin_page.dart';
 import 'package:parking_proj/auth/admin_signup.dart';
 import 'package:parking_proj/auth/auth_page.dart';
 import 'package:parking_proj/auth/login_page.dart';
-import 'package:parking_proj/services/reservation_utils.dart';
 import 'package:parking_proj/user_info_page.dart';
 import 'package:parking_proj/users_reservation_details';
 import 'auth/signup_page.dart';
@@ -16,7 +15,6 @@ import 'onboarding_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await ReservationUtils.checkAndUpdateExpiredReservations();
   runApp(const MyApp());
 }
 

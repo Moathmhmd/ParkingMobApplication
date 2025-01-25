@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ParkingCard extends StatelessWidget {
-  final String imageUrl;
+  final String imageUrl; // URL of the image
   final String name;
   final String location;
   final String price;
@@ -31,11 +31,28 @@ class ParkingCard extends StatelessWidget {
               // Parking Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
+                child: Image.network(
                   imageUrl,
-                  width: 80, // Increased size
-                  height: 80, // Increased size
-                  fit: BoxFit.cover,
+                  width: 80, // Fixed width
+                  height: 80, // Fixed height
+                  fit: BoxFit.cover, // Ensures image fills the space
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.image, color: Colors.grey),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      alignment: Alignment.center,
+                      child: const CircularProgressIndicator(),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),

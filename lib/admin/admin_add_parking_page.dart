@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class AdminAddParking extends StatefulWidget {
   const AdminAddParking({super.key});
@@ -11,32 +15,59 @@ class AdminAddParking extends StatefulWidget {
 
 class _AdminAddParkingState extends State<AdminAddParking> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _parkingCollection =
-      FirebaseFirestore.instance.collection('parkingSpots');
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _areaController = TextEditingController();
-  final TextEditingController _latitudeController = TextEditingController();
-  final TextEditingController _longitudeController = TextEditingController();
-
   final TextEditingController _floorNumberController = TextEditingController();
   final TextEditingController _floorSlotsController = TextEditingController();
-  final TextEditingController _floorPriceController =
-      TextEditingController(); // Price per floor
+  final TextEditingController _floorPriceController = TextEditingController();
 
   final List<Map<String, dynamic>> _floors = [];
+  LatLng? _selectedLocation;
+  File? _selectedImage;
+  String? _imageUrl;
 
-  // Method to add a parking lot to Firestore
+  final ImagePicker _picker = ImagePicker();
+
+  // Select an image
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  // Upload image to Firebase Storage
+  Future<String?> _uploadImage(String parkingId) async {
+    if (_selectedImage == null) return null;
+
+    try {
+      final storageRef = _storage.ref().child('parking_images/$parkingId.jpg');
+      final uploadTask = storageRef.putFile(_selectedImage!);
+      final snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error uploading image: $e")),
+      );
+      return null;
+    }
+  }
+
   void _addParkingLot() async {
     final String name = _nameController.text.trim();
     final String area = _areaController.text.trim();
-    final double latitude = double.tryParse(_latitudeController.text) ?? 0.0;
-    final double longitude = double.tryParse(_longitudeController.text) ?? 0.0;
 
-    // Validate inputs
-    if (name.isEmpty || area.isEmpty || _floors.isEmpty) {
+    if (name.isEmpty ||
+        area.isEmpty ||
+        _floors.isEmpty ||
+        _selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields and add floors")),
+        const SnackBar(
+            content: Text("Please fill all fields, add floors, and select an image.")),
       );
       return;
     }
@@ -45,24 +76,28 @@ class _AdminAddParkingState extends State<AdminAddParking> {
         0, (sum, floor) => sum + (floor['slots'] as List).length);
     final int availableSpots = capacity;
 
-    // Get the current user's ID
     final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? "";
 
     final Map<String, dynamic> parkingLot = {
       'name': name,
       'area': area,
-      'latitude': latitude,
-      'longitude': longitude,
+      'latitude': _selectedLocation!.latitude,
+      'longitude': _selectedLocation!.longitude,
       'capacity': capacity,
       'availableSpots': availableSpots,
       'floors': _floors,
-      'ownerId': ownerId, // Assign ownership
-      'timestamp': '', 
+      'ownerId': ownerId,
+      'timestamp': '',
     };
 
     try {
-      // Add the new parking lot to Firestore with an automatically generated ID
-      DocumentReference docRef = await _parkingCollection.add(parkingLot);
+      final docRef = await _firestore.collection('parkingSpots').add(parkingLot);
+
+      // Upload image and update the document
+      final imageUrl = await _uploadImage(docRef.id);
+      if (imageUrl != null) {
+        await docRef.update({'imageUrl': imageUrl});
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Parking lot added successfully!")),
@@ -75,20 +110,18 @@ class _AdminAddParkingState extends State<AdminAddParking> {
     }
   }
 
-  // Method to reset the form fields
   void _resetForm() {
     _nameController.clear();
     _areaController.clear();
-    _latitudeController.clear();
-    _longitudeController.clear();
     _floorNumberController.clear();
     _floorSlotsController.clear();
-    _floorPriceController.clear(); // Reset price controller
+    _floorPriceController.clear();
     _floors.clear();
+    _selectedLocation = null;
+    _selectedImage = null;
     setState(() {});
   }
 
-  // Method to add a floor to the list
   void _addFloor() {
     final int floorNumber =
         int.tryParse(_floorNumberController.text.trim()) ?? 0;
@@ -112,15 +145,14 @@ class _AdminAddParkingState extends State<AdminAddParking> {
       setState(() {
         _floors.add({
           'floorNumber': floorNumber,
-          'price': price, // Use "price" instead of "hourlyRate"
+          'price': price,
           'slots': slots,
         });
       });
 
-      // Clear the floor-specific inputs
       _floorNumberController.clear();
       _floorSlotsController.clear();
-      _floorPriceController.clear(); // Reset price field
+      _floorPriceController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Invalid floor details.")),
@@ -132,12 +164,18 @@ class _AdminAddParkingState extends State<AdminAddParking> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           "Admin - Add Parking Lot",
-          style:
-              TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color.fromARGB(0, 33, 149, 243),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -154,23 +192,52 @@ class _AdminAddParkingState extends State<AdminAddParking> {
                 controller: _areaController,
                 decoration: const InputDecoration(labelText: "Area"),
               ),
-              TextField(
-                controller: _latitudeController,
-                decoration: const InputDecoration(labelText: "Latitude"),
-                keyboardType: TextInputType.number,
+              const SizedBox(height: 16),
+              Text(
+                _selectedLocation == null
+                    ? "Location not selected"
+                    : "Selected Location: (${_selectedLocation!.latitude}, ${_selectedLocation!.longitude})",
+                style: const TextStyle(fontSize: 16),
               ),
-              TextField(
-                controller: _longitudeController,
-                decoration: const InputDecoration(labelText: "Longitude"),
-                keyboardType: TextInputType.number,
+              const SizedBox(height: 8),
+              LocationPicker(
+                initialLocation: _selectedLocation,
+                onLocationSelected: (LatLng location) {
+                  setState(() {
+                    _selectedLocation = location;
+                  });
+                },
               ),
               const SizedBox(height: 16),
+              if (_selectedImage != null)
+                Image.file(
+                  _selectedImage!,
+                  height: 150,
+                  fit: BoxFit.cover,
+                ),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _pickImage,
+                
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.lightBlue),
+                  child: const Text("Select Image"
+                  ,style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                ),
+              ),
+              const SizedBox(height: 20),
               const Center(
-                child: Text("Add Floor Details",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent)),
+                child: Text(
+                  "Add Floor Details",
+                  style: TextStyle(
+                      color: Colors.lightBlueAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22),
+                ),
               ),
               TextField(
                 controller: _floorNumberController,
@@ -184,15 +251,20 @@ class _AdminAddParkingState extends State<AdminAddParking> {
               ),
               TextField(
                 controller: _floorPriceController,
-                decoration:
-                    const InputDecoration(labelText: "Price per Floor"),
+                decoration: const InputDecoration(labelText: "Price per Floor"),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 8),
               Center(
                 child: ElevatedButton(
                   onPressed: _addFloor,
-                  child: const Text("Add Floor"),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.lightBlue),
+                  child: const Text("Add Floor",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),),
                 ),
               ),
               const SizedBox(height: 16),
@@ -206,11 +278,80 @@ class _AdminAddParkingState extends State<AdminAddParking> {
               Center(
                 child: ElevatedButton(
                   onPressed: _addParkingLot,
-                  child: const Text("Add Parking Lot"),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.lightBlue),
+                  child: const Text("Add Parking Lot",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class LocationPicker extends StatefulWidget {
+  final LatLng? initialLocation;
+  final Function(LatLng) onLocationSelected;
+
+  const LocationPicker({
+    Key? key,
+    this.initialLocation,
+    required this.onLocationSelected,
+  }) : super(key: key);
+
+  @override
+  _LocationPickerState createState() => _LocationPickerState();
+}
+
+class _LocationPickerState extends State<LocationPicker> {
+  LatLng? _currentLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentLocation = widget.initialLocation ?? const LatLng(31.9544, 35.9106);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: _currentLocation!,
+            zoom: 16,
+          ),
+          markers: _currentLocation != null
+              ? {
+                  Marker(
+                    markerId: const MarkerId('selection_pin'),
+                    position: _currentLocation!,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed),
+                    draggable: true,
+                    onDragEnd: (newPosition) {
+                      setState(() {
+                        _currentLocation = newPosition;
+                      });
+                      widget.onLocationSelected(newPosition);
+                    },
+                  ),
+                }
+              : {},
+          onTap: (LatLng tappedLocation) {
+            setState(() {
+              _currentLocation = tappedLocation;
+            });
+            widget.onLocationSelected(tappedLocation);
+          },
         ),
       ),
     );

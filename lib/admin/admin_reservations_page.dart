@@ -148,11 +148,11 @@ class _AdminReservationsPageState extends State<AdminReservationsPage> {
                                       .doc(reservationData['userId'])
                                       .get(),
                                   builder: (context, userSnapshot) {
-                                    String userName = "Unknown User";
+                                    String userName = "";
                                     if (userSnapshot.connectionState == ConnectionState.done &&
                                         userSnapshot.hasData &&
                                         userSnapshot.data!.exists) {
-                                      userName = userSnapshot.data!['name'] ?? "Unknown User";
+                                      userName = userSnapshot.data!['name'] ?? "";
                                     }
 
                                     return Card(

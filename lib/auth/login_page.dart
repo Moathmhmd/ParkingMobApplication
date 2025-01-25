@@ -17,50 +17,79 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoading = false;
 
   Future<void> login() async {
-    setState(() {
-      isLoading = true;
-    });
+  setState(() {
+    isLoading = true;
+  });
 
-    try {
-      // Firebase Authentication Login
-      final user = await _auth.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+  try {
+    // Authenticate the user
+    final userCredential = await _auth.signInWithEmailAndPassword(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+    );
 
+    final userId = userCredential.user!.uid;
+
+    // Check if the user exists in the `admins` collection
+    final adminDoc = await FirebaseFirestore.instance.collection('admins').doc(userId).get();
+    if (adminDoc.exists) {
+      // Navigate to admin dashboard
+      Navigator.pushNamedAndRemoveUntil(context, '/adminDashboard', (route) => false);
+
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Login Successful!'),
+          content: Text('Login Successful! Redirecting to Admin Dashboard.'),
           backgroundColor: Colors.green,
         ),
       );
+      return;
+    }
 
-      // Navigate based on role
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.user!.uid)
-          .get();
+    // Check if the user exists in the `users` collection
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      // Navigate to user main dashboard
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
 
-      if (userDoc.exists && userDoc.data()?['role'] == 'admin') {
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/adminDashboard', (route) => false);
-      } else {
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/main', (route) => false);
-      }
-    } catch (e) {
-      // Handle login errors
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email or Password is Incorrect'),
-          backgroundColor: Colors.red,
+          content: Text('Login Successful! '),
+          backgroundColor: Colors.green,
         ),
       );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      return;
     }
+
+    // If user is not found in either collection
+    _showError("Account not found. Please contact support.");
+  } on FirebaseAuthException catch (e) {
+    // Handle specific FirebaseAuth exceptions
+    String errorMessage = 'An error occurred. Please try again.';
+    if (e.code == 'user-not-found') {
+      errorMessage = 'No account found for this email.';
+    } else if (e.code == 'wrong-password') {
+      errorMessage = 'Incorrect password.';
+    }
+    _showError(errorMessage);
+  } catch (e) {
+    // Handle general errors
+    _showError('Failed to login. Please try again later.');
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -79,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                     'Login',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                          color: Colors.lightBlue,
                         ),
                   ),
                   const SizedBox(height: 40),
@@ -104,9 +133,24 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: login,
-                    child: const Text('Login'),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: login,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        backgroundColor: Colors.lightBlue,
+                      ),
+                      child: const Text('Login',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),),
+                    
+                    ),
+                    
+                    
                   ),
                   const SizedBox(height: 20),
                   Row(

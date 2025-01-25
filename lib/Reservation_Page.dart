@@ -57,8 +57,8 @@ class _ReservationPageState extends State<ReservationPage> {
       final slot = (floorData['slots'] as List<dynamic>).firstWhere((s) => s['name'] == widget.spotName);
 
       // Null check and reservation validation
-      if ((slot['isReserved'] ?? false)) {
-        _showError("The selected slot is already reserved.");
+      if ((slot['isReserved'] ?? false) || slot['status'] != "available") {
+        _showError("The selected slot is either reserved or occupied.");
         return;
       }
 
@@ -71,6 +71,7 @@ class _ReservationPageState extends State<ReservationPage> {
         'reservationId': reservationDoc.id,
         'userId': FirebaseAuth.instance.currentUser?.uid ?? "",
         'parkingLotId': widget.parkingLotId,
+        'parkingName': spot['name'],
         'floorNumber': widget.floorNumber,
         'spotName': widget.spotName,
         'startTime': currentTime.toIso8601String(),
@@ -131,8 +132,16 @@ class _ReservationPageState extends State<ReservationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Reserve ${widget.spotName}"),
-        backgroundColor: Colors.lightBlue,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.lightBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text("Reserve ${widget.spotName}",
+        style: TextStyle(
+              color: Colors.lightBlue, fontWeight: FontWeight.bold),
+        )
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -205,6 +214,7 @@ class _ReservationPageState extends State<ReservationPage> {
                 ),
               ),
             ),
+            
     );
   }
 }

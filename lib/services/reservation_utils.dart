@@ -3,38 +3,51 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ReservationUtils {
   static Future<void> checkAndUpdateExpiredReservations() async {
     try {
-      final now = DateTime.now().toIso8601String();
-      final query = await FirebaseFirestore.instance
+      final now = DateTime.now().toIso8601String(); // Current time in ISO8601
+      final reservationsQuery = await FirebaseFirestore.instance
           .collection('reservations')
-          .where('status', isEqualTo: 'active')
-          .where('endTime', isLessThanOrEqualTo: now)
+          .where('status', isEqualTo: 'active') // Only active reservations
+          .where('endTime', isLessThanOrEqualTo: now) // Check if expired
           .get();
 
-      for (var doc in query.docs) {
-        final reservation = doc.data();
-        final spotDoc = FirebaseFirestore.instance
+      for (var reservationDoc in reservationsQuery.docs) {
+        final reservation = reservationDoc.data();
+
+        // Fetch the associated parking spot
+        final parkingSpotDoc = await FirebaseFirestore.instance
             .collection('parkingSpots')
-            .doc(reservation['parkingLotId']);
+            .doc(reservation['parkingLotId'])
+            .get();
 
-        final spotData = await spotDoc.get();
-        if (!spotData.exists) continue;
+        if (!parkingSpotDoc.exists) continue;
 
-        final spot = spotData.data() as Map<String, dynamic>;
-        final floorData = (spot['floors'] as List<dynamic>)[reservation['floorNumber'] - 1];
-        final slot = (floorData['slots'] as List<dynamic>).firstWhere(
-          (s) => s['name'] == reservation['spotName'],
-          orElse: () => null,
-        );
+        final parkingSpotData = parkingSpotDoc.data()!;
+        final List floors = List.from(parkingSpotData['floors']);
 
-        if (slot == null || slot['status'] != "reserved") continue;
+        // Find the reserved spot
+        final floorIndex = floors.indexWhere(
+            (floor) => floor['floorNumber'] == reservation['floorNumber']);
+        if (floorIndex == -1) continue;
 
-        slot['status'] = "available";
-        slot['reservedBy'] = "";
-        slot['reservationStartTime'] = "";
-        slot['reservationEndTime'] = "";
+        final slots = List.from(floors[floorIndex]['slots']);
+        final slotIndex = slots.indexWhere(
+            (slot) => slot['name'] == reservation['spotName']);
+        if (slotIndex == -1) continue;
 
-        await spotDoc.update({'floors': spot['floors']});
-        await doc.reference.update({'status': 'completed'});
+        // Update the slot's status to "available"
+        slots[slotIndex]['status'] = 'available';
+        slots[slotIndex]['isReserved'] = false;
+        slots[slotIndex]['reservedBy'] = '';
+        slots[slotIndex]['reservationStartTime'] = '';
+        slots[slotIndex]['reservationEndTime'] = '';
+
+        floors[floorIndex]['slots'] = slots;
+
+        // Update the parking spot document
+        await parkingSpotDoc.reference.update({'floors': floors});
+
+        // Update the reservation's status to "completed"
+        await reservationDoc.reference.update({'status': 'completed'});
       }
     } catch (e) {
       print("Error checking expired reservations: $e");

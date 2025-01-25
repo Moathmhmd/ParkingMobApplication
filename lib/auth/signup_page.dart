@@ -128,7 +128,7 @@ class _SignupPageState extends State<SignupPage> {
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
+                                color: Colors.lightBlue,
                               ),
                     ),
                     const SizedBox(height: 100),
@@ -180,7 +180,16 @@ class _SignupPageState extends State<SignupPage> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: signUp,
-                      child: const Text('Sign Up'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        backgroundColor: Colors.lightBlue,
+                      ),
+                      child: const Text('Sign Up',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),),
                     ),
                   ],
                 ),

@@ -23,7 +23,9 @@ class _AdminPageState extends State<AdminPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Admin Page",
-            style: TextStyle(color: Color.fromARGB(255, 55, 128, 255))),
+            style: TextStyle(
+                color: Colors.lightBlueAccent, fontWeight: FontWeight.bold)),
+        centerTitle: true,
         backgroundColor: const Color.fromARGB(0, 33, 149, 243),
         actions: [
           IconButton(
@@ -49,13 +51,16 @@ class _AdminPageState extends State<AdminPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 20,
-                ),
-                textStyle: const TextStyle(fontSize: 20),
-              ),
-              child: const Text("Add Parking Lot"),
+                        padding: 
+                          const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        backgroundColor: Colors.lightBlue,
+                      ),
+              child: const Text("  Add Parking Lot  ",
+              style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),),
             ),
             const SizedBox(height: 30), // Space between buttons
             // Button to Edit Parking Lot
@@ -70,13 +75,18 @@ class _AdminPageState extends State<AdminPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 20,
-                ),
-                textStyle: const TextStyle(fontSize: 20),
-              ),
-              child: const Text("Edit Parking Lot"),
+                        padding: 
+                          const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        backgroundColor: Colors.lightBlue,
+                      ),
+              child: const Text("  Edit Parking Lot  ",
+              style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  
             ),
             const SizedBox(height: 30), // Space between buttons
             // Button to View Reservations
@@ -91,13 +101,17 @@ class _AdminPageState extends State<AdminPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 20,
-                ),
-                textStyle: const TextStyle(fontSize: 20),
-              ),
-              child: const Text("View Reservations"),
+                        padding: 
+                          const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        backgroundColor: Colors.lightBlue,
+                      ),
+              child: const Text("View Reservations",
+              style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ],
         ),

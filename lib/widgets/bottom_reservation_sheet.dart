@@ -106,7 +106,12 @@ class BottomReservationSheet {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Text("Reserve"),
+                        child: const Text("Reserve",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       OutlinedButton(
                         onPressed: () {

@@ -167,7 +167,7 @@ class ReservationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Parking Lot: ${reservation['parkingLotId']}',
+              'Parking Lot: ${reservation['parkingName']}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),

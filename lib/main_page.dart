@@ -147,7 +147,7 @@ class _MainPageState extends State<MainPage> {
                                 : '\$$minPrice - \$$maxPrice/hour';
 
                         return ParkingCard(
-                          imageUrl: 'assets/onboarding1.png', // Placeholder image
+                          imageUrl: spot['imageUrl'], // Placeholder image
                           name: spot['name'] ?? 'Unnamed Spot',
                           location: spot['area'] ?? 'Unknown Area', // Display area from Firestore
                           price: priceRange,

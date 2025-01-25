@@ -10,12 +10,9 @@ void _navigateToPage(int index, BuildContext context) {
         Navigator.pushNamed(context, '/main');
         break;
       case 1:
-        Navigator.pushNamed(context, '/maps');
-        break;
-      case 2:
         Navigator.pushNamed(context, '/booking');
         break;
-      case 3:
+      case 2:
         Navigator.pushNamed(context, '/user_info');
         break;
     }
@@ -26,7 +23,6 @@ void _navigateToPage(int index, BuildContext context) {
     return BottomNavigationBar(
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Maps'),
         BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Reservation'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
